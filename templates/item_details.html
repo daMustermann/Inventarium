@@ -28,10 +28,10 @@
                     </div>
                 </div>
                 <div class="text-center mt-4">
-                    <a href="/edit_item?id={{ item.id }}" class="btn btn-outline-primary mr-2">
+                    <a href="/edit_item?id={{ item.id }}" class="btn btn-outline-primary me-2">
                         <i class="bi bi-pencil"></i> Bearbeiten
                     </a>
-                    <button type="button" class="btn btn-outline-danger" data-toggle="modal" data-target="#deleteModal">
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
                         <i class="bi bi-trash"></i> Löschen
                     </button>
                 </div>
@@ -46,15 +46,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Artikel löschen</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
             </div>
             <div class="modal-body">
                 Möchten Sie wirklich "{{ item.name }}" löschen?
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
                 <a href="/delete/{{ item.id }}" class="btn btn-danger">Löschen</a>
             </div>
         </div>

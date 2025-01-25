@@ -10,17 +10,18 @@ import google.generativeai as genai
 from googleapiclient.discovery import build
 import requests
 from io import BytesIO
+import secrets
 
 # Umgebungsvariablen laden
 load_dotenv()
 
 # Flask-Anwendung initialisieren
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Für Flash-Messages und Session
+app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB Größenlimit
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size
 
 # Stelle sicher, dass der Upload-Ordner existiert
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -304,6 +305,28 @@ def search_items():
     
     return render_template('index.html', items=items)
 
+# Standard-Prompt definieren
+DEFAULT_PROMPT = """Generiere 3 sachliche Produktbeschreibungen für den Artikel "{name}". 
+Bleibe dabei EXAKT in der Produktkategorie des Artikels - generiere keine Vorschläge für andere Produkttypen.
+
+Der Titel sollte enthalten:
+- Exakter Herstellername (hier: {name} - behalte diesen bei)
+- Genaue Modellbezeichnung 
+- Wichtigste technische Spezifikation
+
+Die Beschreibung sollte enthalten:
+- Technische Hauptmerkmale
+- Spezifische Leistungsdaten
+- Besondere Funktionen
+- Kompatibilität/Anschlüsse
+
+WICHTIG:
+- Behalte den originalen Herstellernamen bei
+- Generiere nur Varianten des GLEICHEN Produkts
+- Keine anderen Produkte oder Hersteller vorschlagen
+- Nur verifizierbare technische Fakten
+- Keine Werbesprache oder Übertreibungen"""
+
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     """Einstellungen für die APIs verwalten"""
@@ -313,7 +336,8 @@ def settings():
             'GEMINI_API_KEY': os.getenv('GEMINI_API_KEY', ''),
             'GEMINI_MODEL': os.getenv('GEMINI_MODEL', 'gemini-1.0-pro'),
             'GOOGLE_API_KEY': os.getenv('GOOGLE_API_KEY', ''),
-            'GOOGLE_CSE_ID': os.getenv('GOOGLE_CSE_ID', '')
+            'GOOGLE_CSE_ID': os.getenv('GOOGLE_CSE_ID', ''),
+            'CUSTOM_PROMPT': os.getenv('CUSTOM_PROMPT', DEFAULT_PROMPT)
         }
         
         # Neue Werte nur übernehmen, wenn sie nicht leer sind
@@ -321,6 +345,7 @@ def settings():
         new_model = request.form.get('model', '').strip()
         new_google_api_key = request.form.get('google_api_key', '').strip()
         new_google_cse_id = request.form.get('google_cse_id', '').strip()
+        new_prompt = request.form.get('custom_prompt', '').strip()
 
         # Aktualisiere die Werte nur wenn sie nicht leer sind
         if new_api_key:
@@ -331,6 +356,8 @@ def settings():
             env_content['GOOGLE_API_KEY'] = new_google_api_key
         if new_google_cse_id:
             env_content['GOOGLE_CSE_ID'] = new_google_cse_id
+        if new_prompt:
+            env_content['CUSTOM_PROMPT'] = new_prompt
         
         # .env Datei aktualisieren
         with open('.env', 'w', encoding='utf-8') as f:
@@ -352,11 +379,13 @@ def settings():
                          api_key=os.getenv('GEMINI_API_KEY', ''),
                          current_model=os.getenv('GEMINI_MODEL', 'gemini-1.0-pro'),
                          google_api_key=os.getenv('GOOGLE_API_KEY', ''),
-                         google_cse_id=os.getenv('GOOGLE_CSE_ID', ''))
+                         google_cse_id=os.getenv('GOOGLE_CSE_ID', ''),
+                         custom_prompt=os.getenv('CUSTOM_PROMPT', DEFAULT_PROMPT),
+                         default_prompt=DEFAULT_PROMPT)
 
 @app.route('/generate_description', methods=['POST'])
 def generate_description():
-    """Generiert Vorschläge für Titel und Beschreibung mit Gemini"""
+    """Generiert sachliche Vorschläge für Titel und Beschreibung mit Gemini"""
     try:
         import json
         data = request.get_json()
@@ -370,17 +399,21 @@ def generate_description():
         # Gemini-Modell initialisieren
         model = genai.GenerativeModel(os.getenv('GEMINI_MODEL', 'gemini-1.0-pro'))
         
-        # Vereinfachter Prompt
-        prompt = f"""Generiere 3 Vorschläge für den Artikel "{name}" im folgenden JSON-Format:
+        # Benutzerdefinierten Prompt laden oder Standard-Prompt verwenden
+        user_prompt = os.getenv('CUSTOM_PROMPT', DEFAULT_PROMPT)
+        
+        # Technischen Teil des Prompts hinzufügen
+        prompt = f"""{user_prompt.format(name=name)}
+
 [
     {{
-        "title": "Präziser Titel",
-        "description": "• Eigenschaft 1\\n• Eigenschaft 2\\n• Eigenschaft 3",
-        "consumables": ["Material 1", "Material 2"]
+        "title": "{name} - Technische Details",
+        "description": "• Technische Spezifikation\\n• Hauptmerkmal\\n• Besonderheit",
+        "consumables": ["Benötigtes Zubehör 1", "Benötigtes Zubehör 2"]
     }}
 ]
 
-WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen."""
+WICHTIG: Antworte NUR mit dem JSON-Array. Behalte den Herstellernamen '{name}' in ALLEN Vorschlägen bei."""
 
         # Generierung durchführen
         response = model.generate_content(prompt)
@@ -405,21 +438,21 @@ WICHTIG: Antworte NUR mit dem JSON-Array, keine zusätzlichen Erklärungen."""
             except json.JSONDecodeError as e:
                 print(f"JSON Parse Error: {str(e)}")
         
-        # Fallback
+        # Fallback mit originalem Produktnamen
         return jsonify([
             {
-                "title": f"{name} - Version 1",
-                "description": "• Neuer Artikel\n• Kategorie auswählen\n• Details ergänzen",
+                "title": f"{name} - Standard Edition",
+                "description": "• Originalprodukt\n• Standardausführung\n• Technische Details ergänzen",
                 "consumables": []
             },
             {
-                "title": f"{name} - Version 2",
-                "description": "• Artikel-ID: Neu\n• Status: Aktiv\n• Weitere Details hinzufügen",
+                "title": f"{name} - Professional Version",
+                "description": "• Originalprodukt\n• Professionelle Ausführung\n• Technische Details ergänzen",
                 "consumables": []
             },
             {
-                "title": f"{name} - Version 3",
-                "description": "• Bezeichnung: Standard\n• Typ: Basis\n• Verwendung definieren",
+                "title": f"{name} - Premium Ausführung",
+                "description": "• Originalprodukt\n• Premium Edition\n• Technische Details ergänzen",
                 "consumables": []
             }
         ])
@@ -691,9 +724,13 @@ def serve_image(filename):
         print(f"Fehler beim Laden des Bildes {filename}: {str(e)}")
         return '', 404
 
-# Anwendung starten
-if __name__ == '__main__':
-    # Datenbank-Tabellen erstellen, falls sie nicht existieren
+# Datenbank beim Start initialisieren
+def init_db():
     with app.app_context():
         db.create_all()
+        print("Datenbank wurde initialisiert.")
+
+# Anwendung starten
+if __name__ == '__main__':
+    init_db()
     app.run(debug=True)

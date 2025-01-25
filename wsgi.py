@@ -1,5 +1,8 @@
 from waitress import serve
-from app import app
+from app import app, init_db
+
+# Datenbank initialisieren
+init_db()
 
 if __name__ == '__main__':
     # Konfiguration für Waitress

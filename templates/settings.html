@@ -3,104 +3,85 @@
 {% block title %}Inventarium - Einstellungen{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="text-center mb-4 text-accent">Einstellungen</h2>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
+<div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0 text-accent">API-Einstellungen</h5>
+                <div class="card-header bg-dark text-light">
+                    <h5 class="mb-0">Einstellungen</h5>
                 </div>
                 <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
                     <form method="POST">
-                        <!-- Gemini API Einstellungen -->
                         <div class="mb-4">
-                            <h6 class="text-accent mb-3">Gemini AI Konfiguration</h6>
+                            <h6 class="text-accent mb-3">Gemini API Einstellungen</h6>
                             <div class="mb-3">
-                                <label for="api_key" class="form-label">API-Schlüssel</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="api_key" name="api_key" value="{{ api_key }}">
-                                    <button class="btn btn-outline-primary" type="button" onclick="togglePassword('api_key')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text">
-                                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-accent">
-                                        <i class="bi bi-key"></i> Gemini API-Schlüssel erstellen
-                                    </a>
-                                </div>
+                                <label for="api_key" class="form-label">API Key</label>
+                                <input type="password" class="form-control" id="api_key" name="api_key" value="{{ api_key }}">
                             </div>
-                            
                             <div class="mb-3">
                                 <label for="model" class="form-label">Modell</label>
                                 <select class="form-select" id="model" name="model">
                                     <optgroup label="Experimentelle Modelle (Neueste)">
-                                        <option value="gemini-2.0-flash-thinking-exp-01-21" {% if current_model == "gemini-2.0-flash-thinking-exp-01-21" %}selected{% endif %}>
+                                        <option value="gemini-2.0-flash-thinking-exp-01-21" {% if current_model == 'gemini-2.0-flash-thinking-exp-01-21' %}selected{% endif %}>
                                             Gemini 2.0 Flash Thinking (21. Jan 2025) - Argumentieren für komplexe Probleme
                                         </option>
-                                        <option value="gemini-2.0-flash-exp" {% if current_model == "gemini-2.0-flash-exp" %}selected{% endif %}>
+                                        <option value="gemini-2.0-flash-exp" {% if current_model == 'gemini-2.0-flash-exp' %}selected{% endif %}>
                                             Gemini 2.0 Flash (11. Dez 2024) - Überlegene Geschwindigkeit
                                         </option>
-                                        <option value="gemini-exp-1206" {% if current_model == "gemini-exp-1206" %}selected{% endif %}>
+                                        <option value="gemini-exp-1206" {% if current_model == 'gemini-exp-1206' %}selected{% endif %}>
                                             Gemini (6. Dez 2024) - Qualitätsverbesserungen
                                         </option>
-                                        <option value="learnlm-1.5-pro-experimental" {% if current_model == "learnlm-1.5-pro-experimental" %}selected{% endif %}>
+                                        <option value="learnlm-1.5-pro-experimental" {% if current_model == 'learnlm-1.5-pro-experimental' %}selected{% endif %}>
                                             LearnLM 1.5 Pro (19. Nov 2024) - Audio, Bilder, Videos und Text
                                         </option>
                                     </optgroup>
                                 </select>
-                                <div class="form-text">Experimentelle Modelle können instabil sein, bieten aber die neuesten Funktionen.</div>
                             </div>
                         </div>
 
-                        <!-- Google Custom Search Einstellungen -->
                         <div class="mb-4">
-                            <h6 class="text-accent mb-3">Google Custom Search Konfiguration</h6>
+                            <h6 class="text-accent mb-3">Google Custom Search API Einstellungen</h6>
                             <div class="mb-3">
-                                <label for="google_api_key" class="form-label">Google API-Schlüssel</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="google_api_key" name="google_api_key" value="{{ google_api_key }}">
-                                    <button class="btn btn-outline-primary" type="button" onclick="togglePassword('google_api_key')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text">
-                                    <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-accent">
-                                        <i class="bi bi-key"></i> Google API-Schlüssel erstellen
-                                    </a>
-                                </div>
+                                <label for="google_api_key" class="form-label">Google API Key</label>
+                                <input type="password" class="form-control" id="google_api_key" name="google_api_key" value="{{ google_api_key }}">
                             </div>
-                            
                             <div class="mb-3">
                                 <label for="google_cse_id" class="form-label">Custom Search Engine ID</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="google_cse_id" name="google_cse_id" value="{{ google_cse_id }}">
-                                    <button class="btn btn-outline-primary" type="button" onclick="togglePassword('google_cse_id')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
+                                <input type="text" class="form-control" id="google_cse_id" name="google_cse_id" value="{{ google_cse_id }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6 class="text-accent mb-3">KI-Prompt Anpassung</h6>
+                            <div class="mb-3">
+                                <label for="custom_prompt" class="form-label">Angepasster Prompt</label>
+                                <div class="form-text mb-2">
+                                    Verwenden Sie {name} als Platzhalter für den Artikelnamen. Der technische Teil für das JSON-Format wird automatisch angefügt.
                                 </div>
-                                <div class="form-text">
-                                    <a href="https://programmablesearchengine.google.com/controlpanel/create" target="_blank" class="text-accent">
-                                        <i class="bi bi-search"></i> Custom Search Engine erstellen
-                                    </a>
+                                <textarea class="form-control" id="custom_prompt" name="custom_prompt" rows="8">{{ custom_prompt }}</textarea>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="restoreDefaultPrompt()">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Standard-Prompt wiederherstellen
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Einstellungen speichern
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -108,6 +89,13 @@
         </div>
     </div>
 </div>
+
+<script>
+function restoreDefaultPrompt() {
+    const defaultPrompt = `{{ default_prompt|safe }}`;
+    document.getElementById('custom_prompt').value = defaultPrompt;
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
