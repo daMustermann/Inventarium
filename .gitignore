@@ -1,0 +1,79 @@
+# Umgebungsvariablen und Konfigurationsdateien
+.env
+*.env
+.env.*
+
+# Datenbank
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Uploads und Medien
+static/uploads/
+uploads/
+media/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env/
+.venv/
+
+# IDE-spezifische Dateien
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+log/
+
+# Temporäre Dateien
+*.tmp
+*.bak
+*.swp
+*~
+
+# Lokale Konfigurationsdateien
+config.local.py
+settings.local.py
+
+# Testabdeckung
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/ 

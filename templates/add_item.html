@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Inventarium - Artikel hinzufügen{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-dark">
+                    <h2 class="text-light mb-0">Artikel hinzufügen</h2>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_item') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name des Artikels</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Kategorie</label>
+                            <input type="text" class="form-control" id="category" name="category" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Standort</label>
+                            <input type="text" class="form-control" id="location" name="location" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Menge</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschreibung</label>
+                            <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+                            <button type="button" class="btn btn-outline-primary mt-2" onclick="generateSuggestions()">
+                                <i class="bi bi-magic"></i> KI-Vorschläge generieren
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Bild</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('image').click()">
+                                    <i class="bi bi-upload"></i> Bild hochladen
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#imageSearchModal">
+                                    <i class="bi bi-search"></i> Nach Bildern suchen
+                                </button>
+                            </div>
+                            <input type="file" class="form-control d-none" id="image" name="image" accept="image/*" onchange="previewImage(this)">
+                            <input type="hidden" id="selected_image_url" name="selected_image_url">
+                            <div id="imagePreview" class="mt-2 text-center d-none">
+                                <img src="" alt="Vorschau" class="img-fluid rounded" style="max-height: 300px">
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Artikel hinzufügen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für KI-Vorschläge -->
+<div class="modal fade" id="aiSuggestionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">KI-Vorschläge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Lade-Animation -->
+                <div id="loadingAnimation" class="text-center my-5">
+                    <div class="spinner-border text-accent" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Lädt...</span>
+                    </div>
+                    <p class="mt-3 text-accent">KI generiert Vorschläge...</p>
+                </div>
+                <!-- Vorschläge Container -->
+                <div id="suggestionsContainer" style="display: none;">
+                    <div class="suggestions-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für Bildsuche -->
+<div class="modal fade" id="imageSearchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bildsuche</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="imageSearchQuery" placeholder="Suchbegriff eingeben">
+                </div>
+                <button class="btn btn-primary mb-3" onclick="searchImages()">
+                    <i class="bi bi-search"></i> Suchen
+                </button>
+                <div id="searchResults" class="row g-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Animation für den Spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner-border {
+    animation: spin 1s linear infinite;
+}
+
+/* Styling für die Vorschläge */
+.suggestion-item {
+    cursor: pointer;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    background: var(--card-dark);
+    transition: all 0.2s ease;
+}
+
+.suggestion-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.suggestion-title {
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-description {
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-consumables {
+    color: var(--text-dark);
+    opacity: 0.8;
+    font-size: 0.9em;
+}
+</style>
+
+<script>
+// Bildvorschau
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const img = preview.querySelector('img');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.classList.remove('d-none');
+            document.getElementById('selected_image_url').value = '';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Funktion zum Generieren von Vorschlägen
+function generateSuggestions() {
+    const name = document.getElementById('name').value;
+    if (!name) {
+        alert('Bitte geben Sie zuerst einen Namen ein.');
+        return;
+    }
+
+    // Modal öffnen und Ladeanimation anzeigen
+    const modal = new bootstrap.Modal(document.getElementById('aiSuggestionsModal'));
+    modal.show();
+    document.getElementById('loadingAnimation').style.display = 'block';
+    document.getElementById('suggestionsContainer').style.display = 'none';
+
+    // API-Aufruf
+    fetch('/generate_description', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Ladeanimation ausblenden und Vorschläge anzeigen
+        document.getElementById('loadingAnimation').style.display = 'none';
+        document.getElementById('suggestionsContainer').style.display = 'block';
+        
+        // Vorschläge in HTML umwandeln
+        const suggestionsHtml = data.map(suggestion => `
+            <div class="suggestion-item" onclick="applySuggestion(this)">
+                <h5 class="suggestion-title">${suggestion.title}</h5>
+                <p class="suggestion-description">${suggestion.description}</p>
+                ${suggestion.consumables ? `
+                    <p class="suggestion-consumables">
+                        <i class="bi bi-box-seam me-2"></i>Verbrauchsmaterial: ${suggestion.consumables}
+                    </p>` : ''}
+            </div>
+        `).join('');
+        
+        document.querySelector('.suggestions-list').innerHTML = suggestionsHtml;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loadingAnimation').style.display = 'none';
+        document.getElementById('suggestionsContainer').style.display = 'block';
+        document.querySelector('.suggestions-list').innerHTML = `
+            <div class="alert alert-danger">
+                Fehler beim Generieren der Vorschläge. Bitte versuchen Sie es später erneut.
+            </div>`;
+    });
+}
+
+// Funktion zum Anwenden eines Vorschlags
+function applySuggestion(element) {
+    const title = element.querySelector('.suggestion-title').textContent;
+    const description = element.querySelector('.suggestion-description').textContent;
+    
+    document.getElementById('name').value = title;
+    document.getElementById('description').value = description;
+    
+    // Modal schließen
+    bootstrap.Modal.getInstance(document.getElementById('aiSuggestionsModal')).hide();
+}
+
+// Bildsuche
+document.getElementById('imageSearchModal').addEventListener('show.bs.modal', function () {
+    const nameInput = document.getElementById('name');
+    const searchInput = document.getElementById('imageSearchQuery');
+    if (nameInput.value) {
+        searchInput.value = nameInput.value;
+        searchImages();
+    }
+});
+
+async function searchImages() {
+    const query = document.getElementById('imageSearchQuery').value;
+    if (!query) {
+        alert('Bitte geben Sie einen Suchbegriff ein.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/search_images', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        });
+        
+        const images = await response.json();
+        if (response.ok) {
+            let html = '';
+            images.forEach(image => {
+                html += `
+                <div class="col-6">
+                    <div class="card h-100">
+                        <img src="${image.thumbnail}" class="card-img-top" alt="${image.title}">
+                        <div class="card-body">
+                            <button class="btn btn-sm btn-outline-primary w-100" onclick="selectImage('${image.url}')">
+                                Auswählen
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('searchResults').innerHTML = html || 'Keine Bilder gefunden';
+        } else {
+            throw new Error(images.error || 'Fehler bei der Bildsuche');
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Bild auswählen
+async function selectImage(url) {
+    try {
+        const response = await fetch('/save_image_from_url', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+            document.getElementById('image').value = '';
+            document.getElementById('selected_image_url').value = result.filename;
+            document.querySelector('#imagePreview img').src = `/static/uploads/${result.filename}`;
+            document.getElementById('imagePreview').classList.remove('d-none');
+            bootstrap.Modal.getInstance(document.getElementById('imageSearchModal')).hide();
+        } else {
+            throw new Error(result.error || 'Fehler beim Speichern des Bildes');
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+</script>
+{% endblock %}

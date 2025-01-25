@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Inventarium - Übersicht{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-6">
+            <form action="{{ url_for('search_items') }}" method="get" class="d-flex">
+                <input type="text" name="query" class="form-control me-2" placeholder="Suche nach Artikeln..." value="{{ request.args.get('query', '') }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for item in items %}
+        <div class="col-md-4 col-sm-6 mb-4">
+            <a href="{{ url_for('item_details', item_id=item.id) }}" class="text-decoration-none">
+                <div class="card hover-shadow h-100">
+                    {% if item.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="card-img-top" alt="{{ item.name }}" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title text-accent">{{ item.name }}</h5>
+                        <p class="card-text">
+                            <i class="bi bi-tag me-2"></i>{{ item.category }}<br>
+                            <i class="bi bi-geo-alt me-2"></i>{{ item.location }}
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-12 text-center">
+            <p>Keine Artikel gefunden.</p>
+            <a href="/add_item" class="btn btn-outline-primary">Artikel hinzufügen</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* Hover-Effekt für die Karten */
+.hover-shadow {
+    transition: all 0.3s ease;
+    transform-origin: center;
+    position: relative;
+    z-index: 1;
+}
+
+.hover-shadow:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+/* Container für die Karte, um Überlappungen zu verhindern */
+.col-md-4, .col-sm-6 {
+    padding: 15px;
+}
+
+/* Sicherstellen, dass die Karte den verfügbaren Platz nutzt */
+.card {
+    margin: 0;
+    height: 100%;
+    will-change: transform;
+}
+
+/* Styling für die Kategorie-Badge */
+.badge.bg-secondary {
+    font-size: 0.9em;
+    padding: 0.4em 0.8em;
+    background-color: var(--accent-color) !important;
+    color: var(--bg-dark);
+}
+
+/* Icons in den Karten */
+.card-text i {
+    width: 20px;
+    color: var(--accent-color);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Inventarium - Artikel bearbeiten{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-accent">Artikel bearbeiten</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('update_item', item_id=item.id) }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name des Artikels</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
+                                <button type="button" class="btn btn-outline-primary" onclick="generateSuggestions()">
+                                    <i class="bi bi-magic"></i> KI-Vorschläge
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Kategorie</label>
+                            <input type="text" class="form-control" id="category" name="category" value="{{ item.category }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Standort</label>
+                            <input type="text" class="form-control" id="location" name="location" value="{{ item.location }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Menge</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" value="{{ item.quantity }}" required min="1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschreibung</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ item.description }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Bild</label>
+                            <div class="d-flex gap-2 align-items-start">
+                                <div class="flex-grow-1">
+                                    <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(event)">
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#imageSearchModal">
+                                    <i class="bi bi-search"></i> Nach Bildern suchen
+                                </button>
+                            </div>
+                            {% if item.image_filename %}
+                            <div class="mt-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img id="imagePreview" src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" alt="Vorschau" style="max-height: 100px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="delete_image" name="delete_image">
+                                        <label class="form-check-label" for="delete_image">
+                                            Bild löschen
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="mt-2" id="previewContainer" style="display: none;">
+                                <img id="imagePreview" src="#" alt="Vorschau" style="max-height: 100px;">
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Speichern</button>
+                            <a href="{{ url_for('item_details', item_id=item.id) }}" class="btn btn-outline-primary">Abbrechen</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KI-Vorschläge Modal -->
+<div class="modal fade" id="suggestionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-accent">KI-Vorschläge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="suggestionsSpinner" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Lädt...</span>
+                    </div>
+                </div>
+                <div id="suggestionsList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bildsuche Modal -->
+<div class="modal fade" id="imageSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-accent">Bildsuche</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="imageSearchQuery" placeholder="Suchbegriff eingeben...">
+                        <button class="btn btn-outline-primary" type="button" onclick="searchImages()">
+                            <i class="bi bi-search"></i> Suchen
+                        </button>
+                    </div>
+                </div>
+                <div id="imageSearchSpinner" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Lädt...</span>
+                    </div>
+                </div>
+                <div id="imageSearchResults" class="row g-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Bildvorschau-Funktionalität
+function previewImage(event) {
+    const preview = document.getElementById('imagePreview');
+    const previewContainer = document.getElementById('previewContainer');
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function() {
+        preview.src = reader.result;
+        previewContainer.style.display = 'block';
+    }
+
+    if (file) {
+        reader.readAsDataURL(file);
+        previewContainer.style.display = 'block';
+    }
+}
+
+// KI-Vorschläge generieren
+async function generateSuggestions() {
+    const nameInput = document.getElementById('name');
+    const suggestionsSpinner = document.getElementById('suggestionsSpinner');
+    const suggestionsList = document.getElementById('suggestionsList');
+    const modal = new bootstrap.Modal(document.getElementById('suggestionsModal'));
+
+    modal.show();
+    suggestionsSpinner.style.display = 'block';
+    suggestionsList.innerHTML = '';
+
+    try {
+        const response = await fetch('/generate_description', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: nameInput.value })
+        });
+
+        const suggestions = await response.json();
+        
+        if (response.ok) {
+            suggestionsList.innerHTML = suggestions.map(suggestion => `
+                <div class="card mb-3 suggestion-card" onclick="applySuggestion(this)">
+                    <div class="card-body">
+                        <h6 class="card-title text-accent">${suggestion.title}</h6>
+                        <p class="card-text">${suggestion.description.replace(/\n/g, '<br>')}</p>
+                        ${suggestion.consumables && suggestion.consumables.length ? `
+                            <p class="card-text"><small class="text-muted">
+                                Verbrauchsmaterial: ${suggestion.consumables.join(', ')}
+                            </small></p>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            throw new Error(suggestions.error || 'Fehler beim Generieren der Vorschläge');
+        }
+    } catch (error) {
+        suggestionsList.innerHTML = `
+            <div class="alert alert-danger">
+                ${error.message || 'Fehler beim Generieren der Vorschläge'}
+            </div>
+        `;
+    } finally {
+        suggestionsSpinner.style.display = 'none';
+    }
+}
+
+// Vorschlag übernehmen
+function applySuggestion(card) {
+    const title = card.querySelector('.card-title').textContent;
+    const description = card.querySelector('.card-text').textContent;
+    
+    document.getElementById('name').value = title;
+    document.getElementById('description').value = description;
+    
+    bootstrap.Modal.getInstance(document.getElementById('suggestionsModal')).hide();
+}
+
+// Bildsuche
+async function searchImages() {
+    const query = document.getElementById('imageSearchQuery').value;
+    const resultsContainer = document.getElementById('imageSearchResults');
+    const spinner = document.getElementById('imageSearchSpinner');
+
+    if (!query) return;
+
+    spinner.style.display = 'block';
+    resultsContainer.innerHTML = '';
+
+    try {
+        const response = await fetch('/search_images', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query })
+        });
+
+        const images = await response.json();
+        
+        if (response.ok) {
+            resultsContainer.innerHTML = images.map(image => `
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <img src="${image.thumbnail}" class="card-img-top" alt="${image.title}" style="height: 150px; object-fit: cover;">
+                        <div class="card-body">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="selectImage('${image.url}')">
+                                Auswählen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            throw new Error(images.error || 'Fehler bei der Bildsuche');
+        }
+    } catch (error) {
+        resultsContainer.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-danger">
+                    ${error.message || 'Fehler bei der Bildsuche'}
+                </div>
+            </div>
+        `;
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+// Bild auswählen
+async function selectImage(url) {
+    const spinner = document.getElementById('imageSearchSpinner');
+    spinner.style.display = 'block';
+
+    try {
+        const response = await fetch('/save_image_from_url', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            const preview = document.getElementById('imagePreview');
+            const previewContainer = document.getElementById('previewContainer');
+            
+            preview.src = `/static/uploads/${result.filename}`;
+            previewContainer.style.display = 'block';
+            
+            // Setze das Bild als ausgewählt
+            const imageInput = document.createElement('input');
+            imageInput.type = 'hidden';
+            imageInput.name = 'selected_image_url';
+            imageInput.value = result.filename;
+            document.querySelector('form').appendChild(imageInput);
+            
+            bootstrap.Modal.getInstance(document.getElementById('imageSearchModal')).hide();
+        } else {
+            throw new Error(result.error || 'Fehler beim Speichern des Bildes');
+        }
+    } catch (error) {
+        alert(error.message || 'Fehler beim Speichern des Bildes');
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+// Bildsuche Modal Event
+document.getElementById('imageSearchModal').addEventListener('show.bs.modal', function () {
+    const nameInput = document.getElementById('name');
+    const searchInput = document.getElementById('imageSearchQuery');
+    
+    if (nameInput.value) {
+        searchInput.value = nameInput.value;
+        searchImages();
+    }
+});
+</script>
+
+<style>
+.suggestion-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.suggestion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-title {
+    margin-bottom: 1rem;
+}
+
+#imageSearchResults .card {
+    transition: all 0.3s ease;
+}
+
+#imageSearchResults .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

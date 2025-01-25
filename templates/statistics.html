@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Inventarium - Statistiken{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Statistik-Karten -->
+        <div class="col-md-12 mb-4">
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-accent">Artikel</h5>
+                            <p class="card-text display-6">{{ total_items }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-accent">Gesamtmenge</h5>
+                            <p class="card-text display-6">{{ total_quantity }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-accent">Datenbank</h5>
+                            <p class="card-text display-6">{{ db_size }} MB</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-accent">Bilder</h5>
+                            <p class="card-text display-6">{{ total_image_size }} MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="text-accent mb-0">Artikel nach Kategorien</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="text-accent mb-0">Artikel nach Standorten</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="locationChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="text-accent mb-0">Bildabdeckung</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="imageStatsChart" style="height: 200px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categoryData = JSON.parse('{{ category_data | tojson | safe }}');
+    const locationData = JSON.parse('{{ location_data | tojson | safe }}');
+    const imageStats = JSON.parse('{{ image_stats | tojson | safe }}');
+    
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'rgb(200, 200, 200)'
+                }
+            }
+        }
+    };
+
+    // Kategorien-Chart
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: categoryData.labels,
+            datasets: [{
+                label: 'Anzahl Artikel',
+                data: categoryData.counts,
+                backgroundColor: 'rgba(255, 165, 0, 0.5)',
+                borderColor: 'rgb(255, 165, 0)',
+                borderWidth: 1
+            }, {
+                label: 'Gesamtmenge',
+                data: categoryData.quantities,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1
+            }]
+        },
+        options: chartOptions
+    });
+    
+    // Standorte-Chart
+    new Chart(document.getElementById('locationChart'), {
+        type: 'bar',
+        data: {
+            labels: locationData.labels,
+            datasets: [{
+                label: 'Anzahl Artikel',
+                data: locationData.counts,
+                backgroundColor: 'rgba(255, 165, 0, 0.5)',
+                borderColor: 'rgb(255, 165, 0)',
+                borderWidth: 1
+            }, {
+                label: 'Gesamtmenge',
+                data: locationData.quantities,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1
+            }]
+        },
+        options: chartOptions
+    });
+    
+    // Bilder-Chart
+    new Chart(document.getElementById('imageStatsChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Mit Bild', 'Ohne Bild'],
+            datasets: [{
+                data: [imageStats.with_images, imageStats.without_images],
+                backgroundColor: ['rgba(255, 165, 0, 0.5)', 'rgba(75, 192, 192, 0.5)'],
+                borderColor: ['rgb(255, 165, 0)', 'rgb(75, 192, 192)'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'rgb(200, 200, 200)'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+/* Styling für die Statistik-Seite */
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.card-header {
+    background-color: var(--card-dark);
+    border-bottom: 1px solid #333;
+}
+
+.display-6 {
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--accent-color);
+}
+
+.text-accent {
+    color: var(--accent-color) !important;
+}
+
+.card-text {
+    color: var(--text-dark);
+    opacity: 0.9;
+}
+
+.list-group-item {
+    background-color: var(--card-dark);
+    border-color: #333;
+    color: var(--text-dark);
+}
+
+/* Chart Container Höhe */
+.card-body canvas {
+    min-height: 300px;
+}
+
+/* Badge Styling */
+.badge {
+    font-size: 0.9em;
+    padding: 0.4em 0.8em;
+}
+
+.badge.bg-primary {
+    background-color: var(--accent-color) !important;
+    color: var(--bg-dark);
+}
+</style>
+{% endblock %} 
