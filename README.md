@@ -155,4 +155,3 @@ Beiträge sind willkommen! Bitte lesen Sie [CONTRIBUTING.md](CONTRIBUTING.md) f�
 
 Bei Fragen oder Problemen:
 - Erstellen Sie ein Issue auf GitHub
-- Kontaktieren Sie uns über [E-Mail](mailto:ihre-email@domain.com) 
