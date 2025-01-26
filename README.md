@@ -30,7 +30,7 @@ Entwickelt von daMustermann.
 
 2. **Repository klonen**
    ```bash
-   git clone https://github.com/IHR_USERNAME/Inventarium.git
+   git clone https://github.com/daMustermann/Inventarium.git
    cd Inventarium
    ```
 
