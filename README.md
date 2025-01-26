@@ -1,6 +1,7 @@
 # 📦 Inventarium
 
 Eine moderne Inventarverwaltung mit KI-Unterstützung und intuitiver Benutzeroberfläche.
+Entwickelt von daMustermann.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)
@@ -16,6 +17,8 @@ Eine moderne Inventarverwaltung mit KI-Unterstützung und intuitiver Benutzerobe
 - 📱 Optimiert für Desktop und Mobile
 - 🔄 Einfache Artikel-Verwaltung (Hinzufügen, Bearbeiten, Löschen)
 - 📷 Bildverwaltung mit automatischer Optimierung
+- 💾 Backup & Restore System für alle Daten
+- 🔐 Sichere Speicherung von API-Keys und Einstellungen
 
 ## 🚀 Installation
 
@@ -113,6 +116,22 @@ Eine moderne Inventarverwaltung mit KI-Unterstützung und intuitiver Benutzerobe
   - Geben Sie Suchbegriffe ein
   - Wählen Sie ein passendes Bild aus
 
+### Backup & Restore
+
+- **Backup erstellen**:
+  - Gehen Sie zu "Einstellungen"
+  - Klicken Sie auf "Backup herunterladen"
+  - Das Backup enthält:
+    - Alle Datenbank-Einträge
+    - Alle Bilder
+    - Alle Einstellungen (.env Datei)
+
+- **Backup wiederherstellen**:
+  - Gehen Sie zu "Einstellungen"
+  - Wählen Sie eine Backup-Datei aus
+  - Klicken Sie auf "Wiederherstellen"
+  - Das System wird automatisch neu geladen
+
 ### Statistiken
 
 - Klicken Sie auf "Statistiken" für:
@@ -120,12 +139,15 @@ Eine moderne Inventarverwaltung mit KI-Unterstützung und intuitiver Benutzerobe
   - Verteilung nach Kategorien
   - Verteilung nach Standorten
   - Systemstatistiken
+  - Bildabdeckung
+  - Speichernutzung
 
 ## 🎨 Design-Anpassung
 
-- Dark/Light Mode über den Toggle in der Navigation
+- Dark Mode optimiert für bessere Lesbarkeit
 - Responsive Design für alle Bildschirmgrößen
 - Optimierte Darstellung auf mobilen Geräten
+- Verbesserte Kontraste und Farbschema
 
 ## 🔧 Fehlerbehebung
 
@@ -142,6 +164,11 @@ Eine moderne Inventarverwaltung mit KI-Unterstützung und intuitiver Benutzerobe
 3. **Bildupload-Probleme**
    - Überprüfen Sie die Schreibrechte im `static/uploads` Ordner
    - Maximale Bildgröße beachten (10MB)
+
+4. **Backup/Restore-Probleme**
+   - Stellen Sie sicher, dass genügend Speicherplatz vorhanden ist
+   - Überprüfen Sie die Schreibrechte für die .env Datei
+   - Backup-Datei muss im ZIP-Format sein
 
 ## 📝 Lizenz
 

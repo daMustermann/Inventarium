@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
 from PIL import Image
@@ -11,6 +11,9 @@ from googleapiclient.discovery import build
 import requests
 from io import BytesIO
 import secrets
+import json
+import shutil
+import zipfile
 
 # Umgebungsvariablen laden
 load_dotenv()
@@ -723,6 +726,125 @@ def serve_image(filename):
     except Exception as e:
         print(f"Fehler beim Laden des Bildes {filename}: {str(e)}")
         return '', 404
+
+@app.route('/backup', methods=['POST'])
+def create_backup():
+    """Erstellt ein Backup der Datenbank und Bilder"""
+    try:
+        # Erstelle einen temporären BytesIO-Buffer für das ZIP
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Exportiere Datenbank-Einträge als JSON
+            items = InventoryItem.query.all()
+            items_data = []
+            for item in items:
+                items_data.append({
+                    'name': item.name,
+                    'category': item.category,
+                    'location': item.location,
+                    'quantity': item.quantity,
+                    'description': item.description,
+                    'image_filename': item.image_filename
+                })
+            
+            # Speichere JSON in ZIP
+            zip_file.writestr('inventory.json', json.dumps(items_data, indent=2))
+            
+            # Füge Bilder hinzu
+            for item in items:
+                if item.image_filename and not item.image_filename.startswith(('http://', 'https://')):
+                    image_path = os.path.join(app.config['UPLOAD_FOLDER'], item.image_filename)
+                    if os.path.exists(image_path):
+                        zip_file.write(image_path, f"images/{item.image_filename}")
+            
+            # Füge .env Datei hinzu wenn sie existiert
+            env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+            if os.path.exists(env_path):
+                zip_file.write(env_path, '.env')
+
+        # Setze Pointer auf Anfang des Buffers
+        zip_buffer.seek(0)
+        
+        # Generiere Dateinamen mit Zeitstempel
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"inventarium_backup_{timestamp}.zip"
+        
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/restore', methods=['POST'])
+def restore_backup():
+    """Stellt ein Backup wieder her"""
+    try:
+        if 'backup_file' not in request.files:
+            return jsonify({'error': 'Keine Backup-Datei hochgeladen'}), 400
+            
+        backup_file = request.files['backup_file']
+        if not backup_file.filename.endswith('.zip'):
+            return jsonify({'error': 'Ungültiges Dateiformat. Nur ZIP-Dateien erlaubt.'}), 400
+            
+        # Erstelle temporären Ordner für die Wiederherstellung
+        temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_restore')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        try:
+            # Extrahiere ZIP
+            with zipfile.ZipFile(backup_file, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+            
+            # Lade JSON-Daten
+            with open(os.path.join(temp_dir, 'inventory.json'), 'r') as f:
+                items_data = json.load(f)
+            
+            # Lösche bestehende Daten
+            InventoryItem.query.delete()
+            
+            # Lösche bestehende Bilder
+            for file in os.listdir(app.config['UPLOAD_FOLDER']):
+                if file.endswith(('.webp', '.jpg', '.jpeg', '.png')):
+                    try:
+                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], file))
+                    except:
+                        pass
+            
+            # Stelle Bilder wieder her
+            if os.path.exists(os.path.join(temp_dir, 'images')):
+                for image in os.listdir(os.path.join(temp_dir, 'images')):
+                    src = os.path.join(temp_dir, 'images', image)
+                    dst = os.path.join(app.config['UPLOAD_FOLDER'], image)
+                    shutil.copy2(src, dst)
+            
+            # Stelle .env Datei wieder her wenn vorhanden
+            env_src = os.path.join(temp_dir, '.env')
+            if os.path.exists(env_src):
+                env_dst = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+                shutil.copy2(env_src, env_dst)
+                # Lade neue Umgebungsvariablen
+                load_dotenv()
+            
+            # Stelle Datenbankeinträge wieder her
+            for item_data in items_data:
+                item = InventoryItem(**item_data)
+                db.session.add(item)
+            
+            db.session.commit()
+            
+            return jsonify({'message': 'Backup erfolgreich wiederhergestellt'})
+            
+        finally:
+            # Aufräumen
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Datenbank beim Start initialisieren
 def init_db():

@@ -6,6 +6,35 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-light">
+                    <h5 class="mb-0">Backup & Wiederherstellung</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-accent mb-3">Backup erstellen</h6>
+                            <p class="text-light mb-3">Erstellt ein Backup aller Daten und Bilder</p>
+                            <button type="button" class="btn btn-primary" onclick="createBackup()">
+                                <i class="bi bi-download"></i> Backup herunterladen
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-accent mb-3">Backup wiederherstellen</h6>
+                            <p class="text-light mb-3">Lädt ein bestehendes Backup hoch</p>
+                            <form id="restoreForm" onsubmit="return restoreBackup(event)">
+                                <div class="input-group">
+                                    <input type="file" class="form-control" id="backupFile" accept=".zip" required>
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="bi bi-upload"></i> Wiederherstellen
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header bg-dark text-light">
                     <h5 class="mb-0">Einstellungen</h5>
@@ -90,29 +119,135 @@
     </div>
 </div>
 
+<!-- Backup Status Modal -->
+<div class="modal fade" id="backupStatusModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-accent">Backup-Status</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="backup-progress mb-4">
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-accent" 
+                             role="progressbar" 
+                             style="width: 100%">
+                        </div>
+                    </div>
+                    <p class="mt-3 backup-status-text">Backup wird erstellt...</p>
+                </div>
+                <div class="backup-success d-none">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Backup wurde erfolgreich erstellt!</p>
+                </div>
+                <div class="backup-error d-none">
+                    <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+                    <p class="mt-3 error-message">Ein Fehler ist aufgetreten.</p>
+                </div>
+            </div>
+            <div class="modal-footer d-none">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function restoreDefaultPrompt() {
     const defaultPrompt = `{{ default_prompt|safe }}`;
     document.getElementById('custom_prompt').value = defaultPrompt;
 }
-</script>
-{% endblock %}
 
-{% block scripts %}
-<script>
-function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    const button = input.nextElementSibling;
-    const icon = button.querySelector('i');
+async function createBackup() {
+    const modal = new bootstrap.Modal(document.getElementById('backupStatusModal'));
+    modal.show();
     
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-    } else {
-        input.type = 'password';
-        icon.classList.remove('bi-eye-slash');
-        icon.classList.add('bi-eye');
+    // UI-Elemente zurücksetzen
+    document.querySelector('.backup-progress').classList.remove('d-none');
+    document.querySelector('.backup-success').classList.add('d-none');
+    document.querySelector('.backup-error').classList.add('d-none');
+    document.querySelector('.modal-footer').classList.add('d-none');
+    
+    try {
+        const response = await fetch('/backup', {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            // Erfolgsfall
+            document.querySelector('.backup-progress').classList.add('d-none');
+            document.querySelector('.backup-success').classList.remove('d-none');
+            
+            // Blob aus Response erstellen und Download starten
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'backup.zip';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            throw new Error('Backup konnte nicht erstellt werden');
+        }
+    } catch (error) {
+        // Fehlerfall
+        document.querySelector('.backup-progress').classList.add('d-none');
+        document.querySelector('.backup-error').classList.remove('d-none');
+        document.querySelector('.error-message').textContent = error.message;
+    } finally {
+        document.querySelector('.modal-footer').classList.remove('d-none');
+    }
+}
+
+async function restoreBackup(event) {
+    event.preventDefault();
+    
+    const modal = new bootstrap.Modal(document.getElementById('backupStatusModal'));
+    modal.show();
+    
+    // UI-Elemente zurücksetzen
+    document.querySelector('.backup-progress').classList.remove('d-none');
+    document.querySelector('.backup-success').classList.add('d-none');
+    document.querySelector('.backup-error').classList.add('d-none');
+    document.querySelector('.modal-footer').classList.add('d-none');
+    document.querySelector('.backup-status-text').textContent = 'Backup wird wiederhergestellt...';
+    
+    const formData = new FormData();
+    formData.append('backup_file', document.getElementById('backupFile').files[0]);
+    
+    try {
+        const response = await fetch('/restore', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Erfolgsfall
+            document.querySelector('.backup-progress').classList.add('d-none');
+            document.querySelector('.backup-success').classList.remove('d-none');
+            document.querySelector('.backup-success p').textContent = result.message;
+            
+            // Formular zurücksetzen
+            document.getElementById('restoreForm').reset();
+            
+            // Nach 2 Sekunden neu laden
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Backup konnte nicht wiederhergestellt werden');
+        }
+    } catch (error) {
+        // Fehlerfall
+        document.querySelector('.backup-progress').classList.add('d-none');
+        document.querySelector('.backup-error').classList.remove('d-none');
+        document.querySelector('.error-message').textContent = error.message;
+    } finally {
+        document.querySelector('.modal-footer').classList.remove('d-none');
     }
 }
 </script>
@@ -192,6 +327,46 @@ option {
 option:hover {
     background-color: var(--accent-color);
     color: var(--bg-dark);
+}
+
+.bg-accent {
+    background-color: var(--accent-color) !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.progress {
+    background-color: rgba(255, 165, 0, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.backup-status-text {
+    color: var(--text-dark);
+    opacity: 0.8;
+}
+
+.input-group .form-control {
+    background-color: var(--card-dark);
+    border-color: #333;
+    color: var(--text-dark);
+}
+
+.input-group .form-control:focus {
+    background-color: var(--card-dark);
+    border-color: var(--accent-color);
+    color: var(--text-dark);
+    box-shadow: 0 0 0 0.2rem rgba(255, 165, 0, 0.25);
+}
+
+.input-group .btn {
+    z-index: 0;
 }
 </style>
 {% endblock %} 
