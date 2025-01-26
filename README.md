@@ -81,10 +81,42 @@ Entwickelt von daMustermann.
    - Klicken Sie auf "Einstellungen speichern"
 
 2. **Anwendung starten**
+
+   **Entwicklungsserver (app.py)**
    ```bash
    python app.py
    ```
-   Die Anwendung ist nun unter `http://localhost:5000` erreichbar.
+   - Vorteile:
+     - Auto-Reload bei Code-Änderungen
+     - Detaillierte Debug-Informationen
+     - Interaktive Debugger-Konsole
+   - Nachteile:
+     - Nicht für Produktivbetrieb geeignet
+     - Eingeschränkte Performance
+     - Keine Sicherheitsoptimierungen
+   - Verwendung:
+     - Während der Entwicklung
+     - Zum Testen von Änderungen
+     - Für lokale Debugging-Zwecke
+
+   **Produktionsserver (wsgi.py)**
+   ```bash
+   python wsgi.py
+   ```
+   - Vorteile:
+     - Optimierte Performance
+     - Multi-Threading Support
+     - Robuste Fehlerbehandlung
+     - Sicherheitsoptimierungen
+   - Nachteile:
+     - Kein Auto-Reload
+     - Weniger Debug-Informationen
+   - Verwendung:
+     - Im Produktivbetrieb
+     - Für den dauerhaften Einsatz
+     - Wenn mehrere Benutzer zugreifen
+
+   Die Anwendung ist unter `http://localhost:5000` erreichbar.
 
 ## 📱 Funktionen
 
