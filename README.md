@@ -113,6 +113,7 @@ Entwickelt von daMustermann.
      - Multi-Threading Support
      - Robuste Fehlerbehandlung
      - Sicherheitsoptimierungen
+     - Im lokalen Netzwerk erreichbar
    - Nachteile:
      - Kein Auto-Reload
      - Weniger Debug-Informationen
@@ -121,7 +122,14 @@ Entwickelt von daMustermann.
      - Für den dauerhaften Einsatz
      - Wenn mehrere Benutzer zugreifen
 
-   Die Anwendung ist unter `http://localhost:5000` erreichbar.
+   Die Anwendung ist erreichbar unter:
+   - Lokal: `http://localhost:5000` oder `http://127.0.0.1:5000`
+   - Netzwerk: `http://<Server-IP>:5000` (ersetzen Sie <Server-IP> mit der IP-Adresse des Servers)
+   
+   Um die IP-Adresse des Servers zu finden:
+   - Windows: `ipconfig` in der Kommandozeile
+   - Linux: `ip addr` oder `ifconfig` im Terminal
+   - Raspberry Pi: `hostname -I` im Terminal
 
 ## 📱 Funktionen
 
