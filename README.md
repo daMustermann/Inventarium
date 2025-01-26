@@ -73,10 +73,12 @@ Entwickelt von daMustermann.
 ## ⚙️ Konfiguration
 
 1. **Umgebungsvariablen einrichten**
-   - Kopieren Sie `.env.example` zu `.env`
+   - Starten Sie die Anwendung
+   - Gehen Sie zu "Einstellungen"
    - Tragen Sie Ihre API-Schlüssel ein:
      - GEMINI_API_KEY (für KI-Vorschläge)
      - GOOGLE_API_KEY und GOOGLE_CSE_ID (für Bildersuche)
+   - Klicken Sie auf "Einstellungen speichern"
 
 2. **Anwendung starten**
    ```bash
