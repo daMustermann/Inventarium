@@ -55,7 +55,7 @@ Entwickelt von daMustermann.
 
 2. **Repository klonen**
    ```bash
-   git clone https://github.com/IHR_USERNAME/Inventarium.git
+   git clone https://github.com/daMustermann/Inventarium.git
    cd Inventarium
    ```
 
@@ -72,13 +72,15 @@ Entwickelt von daMustermann.
 
 ## ⚙️ Konfiguration
 
-1. **Umgebungsvariablen einrichten**
+1. **Umgebungsvariablen einrichten** (optional für erweiterte Funktionen)
    - Starten Sie die Anwendung
    - Gehen Sie zu "Einstellungen"
-   - Tragen Sie Ihre API-Schlüssel ein:
-     - GEMINI_API_KEY (für KI-Vorschläge)
-     - GOOGLE_API_KEY und GOOGLE_CSE_ID (für Bildersuche)
+   - Tragen Sie Ihre API-Schlüssel für die gewünschten Zusatzfunktionen ein:
+     - GEMINI_API_KEY (optional, für KI-Vorschläge)
+     - GOOGLE_API_KEY und GOOGLE_CSE_ID (optional, für Bildersuche)
    - Klicken Sie auf "Einstellungen speichern"
+   
+   *Hinweis: Die Kernfunktionen der Anwendung sind auch ohne API-Schlüssel verfügbar. Die API-Schlüssel werden nur für die KI-Vorschläge und die Bildersuche benötigt.*
 
 2. **Anwendung starten**
 
@@ -99,6 +101,9 @@ Entwickelt von daMustermann.
      - Zum Testen von Änderungen
      - Für lokale Debugging-Zwecke
 
+   Die Anwendung ist unter `http://localhost:5000` erreichbar.
+
+   
    **Produktionsserver (wsgi.py)**
    ```bash
    python wsgi.py
